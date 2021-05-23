@@ -23,6 +23,7 @@
   (ocaml
    (>= 4.05.0))
   (alcotest :with-test)
+  (bechamel :with-test)
   (mdx :with-test)
   (odoc :with-doc))
  (synopsis "Typed routing for OCaml applications")
