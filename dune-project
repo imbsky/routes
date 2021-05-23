@@ -24,7 +24,9 @@
    (>= 4.05.0))
   (alcotest :with-test)
   (bechamel :with-test)
+  (bechamel-notty :with-test)
   (mdx :with-test)
+  (notty :with-test)
   (odoc :with-doc))
  (synopsis "Typed routing for OCaml applications")
  (description
