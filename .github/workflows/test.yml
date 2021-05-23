@@ -1,41 +1,51 @@
-name: RoutesTest
+name: Routes Test
 
 on:
-  - push
-  - pull_request
+  pull_request:
+  push:
+  schedule:
+    # Prime the caches every Monday
+    - cron: 0 1 * * MON
 
 jobs:
   build:
     name: Build
-    runs-on: ${{ matrix.operating-system }}
+
     strategy:
       fail-fast: false
       matrix:
-        operating-system:
+        os:
+          - macos-latest
           - ubuntu-latest
-        ocaml-version:
-          - 4.12.x
-          - 4.11.x
-          - 4.07.x
+          - windows-latest
+        ocaml-compiler:
           - 4.05.x
-        include:
-          - operating-system: windows-latest
-            ocaml-version: 4.12.x
+          - 4.07.x
+          - 4.11.x
+          - 4.12.x
+
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup OCaml ${{ matrix.ocaml-version }}
-        uses: actions-ml/setup-ocaml@master
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-version: ${{ matrix.ocaml-version }}
-          dune-cache: ${{ matrix.operating-system == 'ubuntu-latest' }}
-          opam-depext: false
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+          dune-cache: ${{ matrix.os != 'macos-latest' }}
+          opam-depext-flags: --with-test
+
       - name: Install dependencies
-        run: |
-          opam pin add routes.dev -n .
-          opam install -t . --deps-only
+        run: opam install . --deps-only --with-test
+
+      - name: Run build
+        run: opam exec -- dune build
+
       - name: Run tests
-        run: |
-          opam exec -- dune runtest
+        run: opam exec -- dune runtest
+
       - name: Run doctest
         if: runner.os == 'Linux'
         run: |

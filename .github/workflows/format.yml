@@ -1,28 +1,49 @@
 name: Format
+
 on:
+  pull_request:
   push:
-    branches:
-      - master
+  schedule:
+    # Prime the caches every Monday
+    - cron: 0 1 * * MON
+
 jobs:
   build:
     name: Format OCaml code
-    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        ocaml-compiler:
+          - 4.12.x
+
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-ml/setup-ocaml@master
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-version: 4.12.x
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
-          opam-depext: false
+          opam-depext-flags: --with-test
+
       - name: Install dependencies
-        run: opam install dune ocamlformat.0.18.0
+        run: opam depext ocamlformat=$(cat .ocamlformat | grep version | cut -d '=' -f 2) --install
+
       - name: Format
-        run: opam exec -- dune build @fmt --auto-promote || true
+        run: opam exec -- dune build @fmt --auto-promote
+        continue-on-error: true
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           commit-message: ocamlformat fixes
-          title: 'style: run ocamlformat'
+          title: "style: run ocamlformat"
           body: This is an auto-generated PR with fixes by ocamlformat.
           labels: ocamlformat, automated pr
